@@ -1,0 +1,94 @@
+{
+  "screen_width": 1920,
+  "screen_height": 1080,
+  "camera": 0,
+  "model": "ridge",
+  "loaded_model": null,
+  "grid": [
+    4,
+    4
+  ],
+  "settle_seconds": 1.0,
+  "capture_seconds": 1.5,
+  "ema_alpha": 0.25,
+  "measurement_noise_cov": [
+    [
+      853.1129150390625,
+      0.0
+    ],
+    [
+      0.0,
+      163.19029235839844
+    ]
+  ],
+  "validation": {
+    "samples": 227,
+    "mean_error_px": 96.92608491764335,
+    "median_error_px": 103.83338350187218,
+    "p90_error_px": 152.06131748897386,
+    "mean_error_screen_diagonal_pct": 4.399916902264306,
+    "per_target": [
+      {
+        "target": [
+          422.0,
+          259.0
+        ],
+        "samples": 46,
+        "median_prediction": [
+          334.56681747390087,
+          211.8650672077166
+        ],
+        "median_position_error_px": 99.32906571580767
+      },
+      {
+        "target": [
+          422.0,
+          842.0
+        ],
+        "samples": 46,
+        "median_prediction": [
+          383.88844296646846,
+          825.6914849834207
+        ],
+        "median_position_error_px": 41.454293403290826
+      },
+      {
+        "target": [
+          979.0,
+          561.0
+        ],
+        "samples": 45,
+        "median_prediction": [
+          836.7647190771011,
+          579.0516925827236
+        ],
+        "median_position_error_px": 143.37621401165933
+      },
+      {
+        "target": [
+          1497.0,
+          259.0
+        ],
+        "samples": 45,
+        "median_prediction": [
+          1379.7297951250437,
+          259.0080338582098
+        ],
+        "median_position_error_px": 117.27020515014506
+      },
+      {
+        "target": [
+          1497.0,
+          842.0
+        ],
+        "samples": 45,
+        "median_prediction": [
+          1448.4130206480477,
+          831.3800705760998
+        ],
+        "median_position_error_px": 49.73406743385928
+      }
+    ]
+  },
+  "validation_uses": "Raw error evaluation and filter noise estimation; no regressor training"
+}

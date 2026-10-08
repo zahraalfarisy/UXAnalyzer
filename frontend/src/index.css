@@ -1,0 +1,82 @@
+@import "tailwindcss";
+
+/* ── Design tokens: Apple iOS–inspired blue/white palette ─────────────── */
+:root {
+  --ios-blue:       #007AFF;
+  --ios-blue-light: #4DA3FF;
+  --ios-blue-dark:  #0055B3;
+  --ios-bg:         #F2F2F7;
+  --ios-bg2:        #FFFFFF;
+  --ios-bg3:        #E5E5EA;
+  --ios-label:      #1C1C1E;
+  --ios-label2:     #3A3A3C;
+  --ios-label3:     #636366;
+  --ios-separator:  rgba(60,60,67,0.12);
+  --ios-fill:       rgba(120,120,128,0.12);
+  --ios-fill2:      rgba(120,120,128,0.08);
+  --ios-danger:     #FF3B30;
+  --ios-warning:    #FF9500;
+  --ios-success:    #34C759;
+  --ios-purple:     #AF52DE;
+
+  --radius-sm:  10px;
+  --radius-md:  14px;
+  --radius-lg:  20px;
+  --radius-xl:  28px;
+
+  --shadow-sm:  0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md:  0 4px 16px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
+  --shadow-lg:  0 8px 32px rgba(0,0,0,0.10), 0 4px 12px rgba(0,0,0,0.06);
+  --shadow-blue: 0 4px 24px rgba(0,122,255,0.22);
+}
+
+/* ── Base ─────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html { -webkit-font-smoothing: antialiased; }
+
+body {
+  margin: 0;
+  background: var(--ios-bg);
+  color: var(--ios-label);
+  font-family: -apple-system, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+/* ── Glassmorphism card ──────────────────────────────────────────────── */
+.glass-card {
+  background: rgba(255,255,255,0.72);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid rgba(255,255,255,0.8);
+  box-shadow: var(--shadow-md);
+}
+
+/* ── Pulse animation for live recording indicator ────────────────────── */
+@keyframes pulse-ring {
+  0%   { transform: scale(1);   opacity: 1; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+.pulse-ring::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: var(--ios-danger);
+  animation: pulse-ring 1.4s cubic-bezier(0.4,0,0.6,1) infinite;
+}
+
+/* ── Smooth page transitions ──────────────────────────────────────────── */
+.page-enter {
+  animation: page-in 0.22s cubic-bezier(0.4,0,0.2,1);
+}
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0);   }
+}
+
+/* ── Scrollbar ───────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--ios-bg3); border-radius: 99px; }
