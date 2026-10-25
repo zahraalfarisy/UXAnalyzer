@@ -3,6 +3,7 @@ from __future__ import annotations
 from contextlib import contextmanager
 
 import cv2
+import sys
 
 
 def open_camera(index: int = 0) -> cv2.VideoCapture:
@@ -11,7 +12,11 @@ def open_camera(index: int = 0) -> cv2.VideoCapture:
 
     Compatibility fallback: if camera 0 fails to open, try camera 1.
     """
-    cap = cv2.VideoCapture(index)
+    # DirectShow avoids the long Media Foundation startup on Windows webcams.
+    cap = cv2.VideoCapture(index, cv2.CAP_DSHOW) if sys.platform == "win32" else cv2.VideoCapture(index)
+    if not cap.isOpened() and sys.platform == "win32":
+        cap.release()
+        cap = cv2.VideoCapture(index)
     if cap.isOpened():
         return cap
 

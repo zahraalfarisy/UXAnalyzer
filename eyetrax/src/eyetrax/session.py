@@ -149,14 +149,22 @@ def fresh_smoother(previous):
     return smoother
 
 
-def gaze_samples(estimator, smoother, camera_index, sw, sh):
+def gaze_samples(estimator, smoother, camera_index, sw, sh, stop_event=None):
     """Yield every frame's quality, with raw and filtered gaze. Ctrl+C stops."""
     last_valid = None
     with camera(camera_index) as cap:
-        while True:
+        first_frame_deadline = None
+        received_frame = False
+        while stop_event is None or not stop_event.is_set():
             ok, frame = cap.read()
             if not ok:
+                if first_frame_deadline is None:
+                    first_frame_deadline = time.monotonic() + 5
+                if not received_frame and time.monotonic() < first_frame_deadline:
+                    time.sleep(0.05)
+                    continue
                 raise RuntimeError("Camera stopped providing frames during recording")
+            received_frame = True
             timestamp = time.time()  # Compatible with mouse timestamps in seconds.
             features, blink = estimator.extract_features(frame)
             row = {"timestamp": timestamp, "raw_x": None, "raw_y": None,

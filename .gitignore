@@ -3,3 +3,10 @@ __pycache__/
 .pytest_cache/
 .venv/
 data/sessions/
+
+# Local Impeccable consent and runtime state
+.impeccable/config.local.json
+.impeccable/hook.cache.json
+.impeccable/live/sessions/
+.impeccable/live/inject-journal.json
+.agents/skills/impeccable/scripts/bin/

@@ -7,10 +7,9 @@ import { AlertCircle, CheckCircle, Info, Loader2 } from 'lucide-react'
 export function Card({ children, className = '', padding = true, style = {} }) {
   return (
     <div
-      className={`rounded-2xl ${padding ? 'p-5' : ''} ${className}`}
+      className={`surface-card ${padding ? 'surface-card--padded' : ''} ${className}`}
       style={{
         background: 'var(--ios-bg2)',
-        boxShadow: 'var(--shadow-sm)',
         border: '1px solid var(--ios-separator)',
         ...style,
       }}
@@ -23,13 +22,13 @@ export function Card({ children, className = '', padding = true, style = {} }) {
 /* ── Section header ────────────────────────────────────────────────────── */
 export function SectionHeader({ title, subtitle, action }) {
   return (
-    <div className="flex items-start justify-between mb-3">
+    <div className="section-header">
       <div>
-        <h2 className="font-semibold text-base" style={{ color: 'var(--ios-label)' }}>
+        <h2 className="section-title" style={{ color: 'var(--ios-label)' }}>
           {title}
         </h2>
         {subtitle && (
-          <p className="text-xs mt-0.5" style={{ color: 'var(--ios-label3)' }}>{subtitle}</p>
+          <p className="supporting-copy" style={{ color: 'var(--ios-label3)' }}>{subtitle}</p>
         )}
       </div>
       {action}
@@ -49,9 +48,9 @@ export function Button({
   className = '',
 }) {
   const sizes = {
-    sm: 'px-3 py-1.5 text-xs rounded-xl',
-    md: 'px-5 py-2.5 text-sm rounded-2xl',
-    lg: 'px-6 py-3 text-base rounded-2xl',
+    sm: 'ui-button--sm',
+    md: '',
+    lg: 'ui-button--lg',
   }
 
   const variants = {
@@ -63,6 +62,10 @@ export function Button({
     secondary: {
       background: 'var(--ios-fill)',
       color: 'var(--ios-label)',
+    },
+    inverse: {
+      background: 'white',
+      color: '#20264D',
     },
     danger: {
       background: disabled ? 'var(--ios-bg3)' : 'var(--ios-danger)',
@@ -76,15 +79,16 @@ export function Button({
 
   return (
     <button
+      type="button"
       onClick={onClick}
+      aria-busy={loading || undefined}
       disabled={disabled || loading}
-      className={`inline-flex items-center justify-center gap-2 font-semibold transition-all duration-150 active:scale-95 ${sizes[size]} ${className}`}
+      className={`ui-button ${sizes[size]} ${className}`}
       style={{
         ...variants[variant],
         cursor: disabled || loading ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.5 : 1,
         border: 'none',
-        outline: 'none',
       }}
     >
       {loading ? <Loader2 size={15} className="animate-spin" /> : Icon ? <Icon size={15} /> : null}
@@ -95,7 +99,7 @@ export function Button({
 
 /* ── Alert / Toast ─────────────────────────────────────────────────────── */
 const ALERT_STYLES = {
-  info:    { icon: Info,         bg: 'rgba(0,122,255,0.08)',  color: 'var(--ios-blue)',    border: 'rgba(0,122,255,0.2)'  },
+  info:    { icon: Info,         bg: 'var(--accent-soft)',  color: 'var(--accent)',    border: '#DCE0F7'  },
   success: { icon: CheckCircle,  bg: 'rgba(52,199,89,0.08)', color: 'var(--ios-success)', border: 'rgba(52,199,89,0.2)'  },
   error:   { icon: AlertCircle,  bg: 'rgba(255,59,48,0.08)', color: 'var(--ios-danger)',  border: 'rgba(255,59,48,0.2)'  },
   warning: { icon: AlertCircle,  bg: 'rgba(255,149,0,0.08)', color: 'var(--ios-warning)', border: 'rgba(255,149,0,0.2)'  },
@@ -106,13 +110,14 @@ export function Alert({ type = 'info', title, children }) {
   const Icon = s.icon
   return (
     <div
-      className="rounded-2xl p-4 flex gap-3"
+      role={type === 'error' ? 'alert' : 'status'}
+      className="ui-alert"
       style={{ background: s.bg, border: `1px solid ${s.border}` }}
     >
       <Icon size={18} style={{ color: s.color, flexShrink: 0, marginTop: 1 }} />
-      <div>
-        {title && <p className="text-sm font-semibold mb-0.5" style={{ color: s.color }}>{title}</p>}
-        <p className="text-sm" style={{ color: 'var(--ios-label2)' }}>{children}</p>
+      <div className="min-w-0 max-w-prose break-words">
+        {title && <p className="card-title" style={{ color: s.color }}>{title}</p>}
+        <p className="body-copy" style={{ color: type === 'info' ? '#454F7D' : 'var(--ios-label2)' }}>{children}</p>
       </div>
     </div>
   )
@@ -122,18 +127,14 @@ export function Alert({ type = 'info', title, children }) {
 export function StatTile({ label, value, unit, accent, icon: Icon }) {
   return (
     <div
-      className="rounded-2xl p-4 flex flex-col gap-1"
-      style={{
-        background: accent ? `rgba(${hexToRgb(accent)}, 0.08)` : 'var(--ios-fill2)',
-        border: accent ? `1px solid rgba(${hexToRgb(accent)}, 0.18)` : '1px solid var(--ios-separator)',
-      }}
+      className="stat-tile"
     >
-      {Icon && <Icon size={16} style={{ color: accent ?? 'var(--ios-label3)' }} />}
-      <div className="text-2xl font-bold tabular-nums" style={{ color: accent ?? 'var(--ios-label)' }}>
+      {Icon && <span className="stat-icon"><Icon size={17} /></span>}
+      <div className="stat-value" style={{ color: 'var(--ios-label)' }}>
         {value ?? '—'}
-        {unit && <span className="text-base font-medium ml-1" style={{ color: 'var(--ios-label3)' }}>{unit}</span>}
+        {unit && <span>{unit}</span>}
       </div>
-      <div className="text-xs" style={{ color: 'var(--ios-label3)' }}>{label}</div>
+      <div className="stat-label">{label}</div>
     </div>
   )
 }
@@ -142,11 +143,11 @@ export function StatTile({ label, value, unit, accent, icon: Icon }) {
 export function Badge({ children, color = 'var(--ios-blue)' }) {
   return (
     <span
-      className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold"
+      className="ui-badge"
       style={{
-        background: `${color}18`,
-        color,
-        border: `1px solid ${color}30`,
+        background: `color-mix(in srgb, ${color} 9%, white)`,
+        color: readableColor(color),
+        border: `1px solid color-mix(in srgb, ${color} 22%, white)`,
       }}
     >
       {children}
@@ -156,7 +157,11 @@ export function Badge({ children, color = 'var(--ios-blue)' }) {
 
 /* ── Spinner ───────────────────────────────────────────────────────────── */
 export function Spinner({ size = 20 }) {
-  return <Loader2 size={size} className="animate-spin" style={{ color: 'var(--ios-blue)' }} />
+  return <span role="status" aria-label="Loading"><Loader2 size={size} className="animate-spin" style={{ color: 'var(--ios-blue)' }} /></span>
+}
+
+function readableColor(color) {
+  return ({ '#34C759': '#187043', '#FF9500': '#895208', '#FF3B30': '#B42318', '#007AFF': 'var(--accent)', '#AF52DE': '#7355AB' })[color.toUpperCase()] ?? color
 }
 
 /* ── Progress bar ──────────────────────────────────────────────────────── */

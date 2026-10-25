@@ -17,13 +17,14 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import {
   ChevronLeft, Eye, Zap, MousePointerClick, CheckCircle,
-  AlertCircle, RefreshCw, Lightbulb, BarChart2
+  AlertCircle, RefreshCw, Lightbulb, BarChart2, Play
 } from 'lucide-react'
 import { api } from '../api'
 import {
   Card, SectionHeader, Button, Alert, StatTile, Badge, Spinner, Divider
 } from '../components/ui'
-import GazeHeatmap from '../components/GazeHeatmap'
+import SessionPlayback from '../components/SessionPlayback'
+import PageHeatmaps from '../components/PageHeatmaps'
 import FrictionEventsList from '../components/FrictionEventsList'
 
 /* ── UI Recommendations engine ─────────────────────────────────────────── */
@@ -84,10 +85,10 @@ function generateRecommendations(frictionEvents, calibration) {
 }
 
 const SEV_STYLE = {
-  high:    { color: '#FF3B30', bg: 'rgba(255,59,48,0.07)',  border: 'rgba(255,59,48,0.18)'  },
-  medium:  { color: '#FF9500', bg: 'rgba(255,149,0,0.07)', border: 'rgba(255,149,0,0.18)'  },
-  low:     { color: '#007AFF', bg: 'rgba(0,122,255,0.07)', border: 'rgba(0,122,255,0.18)'  },
-  success: { color: '#34C759', bg: 'rgba(52,199,89,0.07)', border: 'rgba(52,199,89,0.18)'  },
+  high:    { color: 'var(--ios-danger)', bg: '#FFF5F3', border: '#F5D8D3' },
+  medium:  { color: 'var(--ios-warning)', bg: '#FFF9F0', border: '#EFDFC2' },
+  low:     { color: 'var(--accent)', bg: 'var(--accent-soft)', border: '#DCE0F7' },
+  success: { color: 'var(--ios-success)', bg: '#F0F8F4', border: '#D3E9DD' },
 }
 
 function RecCard({ rec }) {
@@ -99,9 +100,9 @@ function RecCard({ rec }) {
       style={{ background: s.bg, border: `1px solid ${s.border}` }}
     >
       <Icon size={18} style={{ color: s.color, flexShrink: 0, marginTop: 1 }} />
-      <div>
-        <p className="text-sm font-semibold mb-1" style={{ color: s.color }}>{rec.title}</p>
-        <p className="text-xs leading-relaxed" style={{ color: 'var(--ios-label2)' }}>{rec.desc}</p>
+      <div className="min-w-0">
+        <h3 className="card-title mb-2" style={{ color: s.color }}>{rec.title}</h3>
+        <p className="body-copy" style={{ color: 'var(--ios-label2)' }}>{rec.desc}</p>
       </div>
     </div>
   )
@@ -122,7 +123,7 @@ function CalibrationPanel({ cal }) {
                            ['#FF3B30', 'Poor']
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <div className="metrics-grid">
       <StatTile
         label="Mean error"
         value={v.mean_error_px?.toFixed(1) ?? '—'}
@@ -162,7 +163,7 @@ export default function SessionDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [analyzing, setAnalyzing] = useState(false)
-  const [activeTab, setActiveTab] = useState('heatmap')
+  const [activeTab, setActiveTab] = useState('playback')
 
   const load = async () => {
     setLoading(true)
@@ -192,23 +193,30 @@ export default function SessionDetailPage() {
   useEffect(() => { load() }, [sid])
 
   if (loading) return (
-    <div className="flex justify-center items-center h-64">
+    <div className="page-shell loading-state">
       <Spinner size={36} />
     </div>
   )
 
   if (error) return (
-    <div className="max-w-2xl mx-auto px-4 py-6">
+    <div className="page-shell page-shell--task">
       <Alert type="error" title="Error loading session">{error}</Alert>
     </div>
   )
 
   const recs = generateRecommendations(data.friction_events ?? [], data.calibration)
+  if (!data.gaze_samples_count) {
+    const success = recs.findIndex(r => r.severity === 'success')
+    if (success >= 0) recs.splice(success, 1)
+    recs.unshift({ severity: 'medium', title: 'Gaze analysis unavailable',
+      desc: 'No valid gaze was recorded. Mouse signals can still be reviewed, but this session cannot establish visual attention or gaze–click mismatch. Check camera tracking before recording again.' })
+  }
   const cal = data.calibration
   const sw = cal?.screen_width  ?? 1920
   const sh = cal?.screen_height ?? 1080
 
   const TABS = [
+    { id: 'playback', label: 'Playback',        icon: Play    },
     { id: 'heatmap',  label: 'Heatmap',         icon: Eye     },
     { id: 'friction', label: 'Friction Events',  icon: Zap     },
     { id: 'recs',     label: 'Recommendations',  icon: Lightbulb},
@@ -216,22 +224,23 @@ export default function SessionDetailPage() {
   ]
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6 flex flex-col gap-5">
+    <div className="page-shell">
 
       {/* Back + title */}
-      <div className="flex items-center gap-3">
+      <div className="session-detail-intro">
         <button
+          aria-label="Back to sessions"
           onClick={() => navigate('/results')}
-          className="w-8 h-8 rounded-xl flex items-center justify-center transition-all hover:opacity-70"
+          className="w-11 h-11 shrink-0 rounded-xl flex items-center justify-center transition-all hover:opacity-70"
           style={{ background: 'var(--ios-fill)' }}
         >
           <ChevronLeft size={18} style={{ color: 'var(--ios-label)' }} />
         </button>
-        <div>
-          <h1 className="text-xl font-bold" style={{ color: 'var(--ios-label)' }}>
+        <div className="min-w-0 flex-1">
+          <h1 className="page-title" style={{ color: 'var(--ios-label)' }}>
             Session Detail
           </h1>
-          <p className="text-xs" style={{ color: 'var(--ios-label3)' }}>{sid}</p>
+          <p className="metadata">{sid}</p>
         </div>
         <div className="ml-auto flex gap-2">
           {!analyzing && (
@@ -249,7 +258,7 @@ export default function SessionDetailPage() {
       </div>
 
       {/* Overview stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="metrics-grid">
         <StatTile
           label="Gaze samples"
           value={data.gaze_samples_count?.toLocaleString() ?? '—'}
@@ -276,16 +285,31 @@ export default function SessionDetailPage() {
         />
       </div>
 
+      {(!data.gaze_samples_count || data.quality?.gaze_error || data.quality?.video_error) && (
+        <Alert type="warning" title="Recording quality">
+          {data.quality?.gaze_error && `${data.quality.gaze_error} `}
+          {!data.gaze_samples_count && `No valid gaze samples. Camera frames: ${data.quality?.frames ?? 0}. `}
+          {Object.entries(data.quality?.reasons ?? {}).map(([reason, count]) => `${reason}: ${count}`).join(' · ')}
+          {data.quality?.video_error && ` Video: ${data.quality.video_error}`}
+        </Alert>
+      )}
+
       {/* Tab bar */}
+      {cal?.validation?.mean_error_px > 80 && activeTab === 'playback' && (
+        <Alert type="warning" title="Gaze accuracy">
+          Calibration error is {cal.validation.mean_error_px.toFixed(1)}px. Gaze markers are estimates; recalibrate for more accurate attention and gaze–click analysis.
+        </Alert>
+      )}
       <div
-        className="flex gap-1 p-1 rounded-2xl"
+        className="session-tabs flex"
         style={{ background: 'var(--ios-fill)' }}
       >
         {TABS.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
+            aria-pressed={activeTab === id}
             onClick={() => setActiveTab(id)}
-            className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all"
+            className="flex items-center justify-center gap-2 px-4 py-2 transition-colors"
             style={{
               background: activeTab === id ? 'var(--ios-bg2)' : 'transparent',
               color: activeTab === id ? 'var(--ios-blue)' : 'var(--ios-label3)',
@@ -293,40 +317,25 @@ export default function SessionDetailPage() {
             }}
           >
             <Icon size={13} />
-            <span className="hidden sm:inline">{label}</span>
+            <span>{label}</span>
           </button>
         ))}
       </div>
+
+      {activeTab === 'playback' && <Card>
+        <SectionHeader title="Screen Playback & Gaze" subtitle="Review your screen with gaze and cursor synchronized to the recording" />
+        <SessionPlayback key={sid} data={data} screenWidth={sw} screenHeight={sh} />
+      </Card>}
 
       {/* Tab: Heatmap */}
       {activeTab === 'heatmap' && (
         <Card>
           <SectionHeader
-            title="Gaze Heatmap & Mouse Path"
+            title="Page Screenshots & Heatmaps"
             subtitle={`${sw}×${sh}px · ${data.gaze_samples_count} gaze samples · ${data.clicks?.length} clicks`}
           />
           
-          <div className="relative rounded-2xl overflow-hidden" style={{ background: '#0A0A0F', border: '1px solid rgba(255,255,255,0.06)' }}>
-            <video 
-              src={`/data/${sid}/screen.mp4`} 
-              controls 
-              loop 
-              muted 
-              className="w-full h-auto block"
-              style={{ maxHeight: '70vh' }}
-            />
-            <div className="absolute inset-0 pointer-events-none" style={{ mixBlendMode: 'screen' }}>
-              <GazeHeatmap
-                heatmap={data.heatmap ?? []}
-                mousePath={data.mouse_path ?? []}
-                clicks={data.clicks ?? []}
-                frictionEvents={data.friction_events ?? []}
-                screenWidth={sw}
-                screenHeight={sh}
-                transparentBg={true}
-              />
-            </div>
-          </div>
+          <PageHeatmaps sid={sid} screenWidth={sw} screenHeight={sh} />
         </Card>
       )}
 
@@ -381,7 +390,7 @@ export default function SessionDetailPage() {
               <Divider />
               <SectionHeader title="Per-target validation" />
               <div className="overflow-x-auto">
-                <table className="w-full text-xs border-collapse">
+                <table className="w-full text-sm numeric border-collapse">
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--ios-separator)' }}>
                       {['Target', 'Samples', 'Error (px)'].map(h => (

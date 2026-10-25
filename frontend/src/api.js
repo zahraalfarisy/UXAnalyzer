@@ -22,6 +22,7 @@ export const api = {
   // Sessions
   listSessions:     ()    => req('/sessions'),
   getSession:       (sid) => req(`/sessions/${sid}`),
+  getPageSnapshots: (sid) => req(`/sessions/${sid}/pages`),
 
   // Calibration
   startCalibration: ()    => req('/calibrate', { method: 'POST' }),

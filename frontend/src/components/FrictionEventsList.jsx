@@ -79,12 +79,7 @@ export default function FrictionEventsList({ events = [] }) {
         return (
           <div
             key={i}
-            className="flex items-center gap-3 p-3 rounded-2xl transition-all hover:scale-[1.005]"
-            style={{
-              background: 'var(--ios-bg2)',
-              border: '1px solid var(--ios-separator)',
-              boxShadow: 'var(--shadow-sm)',
-            }}
+            className="event-row"
           >
             {/* Icon */}
             <div
@@ -104,7 +99,7 @@ export default function FrictionEventsList({ events = [] }) {
                   </span>
                 )}
               </div>
-              <p className="text-xs mt-1 truncate" style={{ color: 'var(--ios-label3)' }}>
+              <p className="supporting-copy event-description mt-2" style={{ color: 'var(--ios-label3)' }}>
                 {meta.desc(e)}
               </p>
             </div>

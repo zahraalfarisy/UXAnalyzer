@@ -55,6 +55,7 @@ _state: dict = {
     "proc": None,              # subprocess.Popen
     "error": None,
     "recording_started_at": None,
+    "recording_metrics": None,
 }
 _state_lock = threading.Lock()
 
@@ -66,6 +67,7 @@ def _safe_state() -> dict:
             "session_id": _state["session_id"],
             "error": _state["error"],
             "recording_started_at": _state["recording_started_at"],
+            "recording_metrics": _state["recording_metrics"],
         }
 
 
@@ -193,7 +195,7 @@ def list_sessions():
 
 @app.get("/api/sessions/{sid}")
 def get_session(sid: str):
-    _session_dir(sid)
+    session_dir = _session_dir(sid)
     cal = _parse_calibration(sid)
     friction = _parse_friction(sid)
     gaze = _parse_gaze(sid)
@@ -216,6 +218,15 @@ def get_session(sid: str):
         for e in mouse.get("events", [])
         if e.get("meta", {}).get("subtype") == "click"
     ]
+    video = session_dir / "screen.mp4"
+    recording = cal or {}
+    quality = {
+        "frames": recording.get("frames", 0),
+        "valid_frames": recording.get("valid_frames", len(gaze)),
+        "reasons": recording.get("gaze_reasons", {}),
+        "gaze_error": recording.get("gaze_error"),
+        "video_error": recording.get("video_error"),
+    }
 
     return {
         "session_id": sid,
@@ -226,7 +237,40 @@ def get_session(sid: str):
         "mouse_path": mouse_path,
         "clicks": clicks,
         "heatmap": heatmap,
+        "gaze_samples": gaze,
+        "mouse_samples": [{"timestamp": e["ts"], "x": e["x"], "y": e["y"],
+                           "subtype": e.get("meta", {}).get("subtype")}
+                          for e in mouse.get("events", [])],
+        "video_url": f"/data/{sid}/screen.mp4" if video.exists() and video.stat().st_size > 0 else None,
+        "video_started_at": recording.get("video_started_at", recording.get("started_at")),
+        "quality": quality,
     }
+
+
+@app.get("/api/sessions/{sid}/pages")
+def get_page_snapshots(sid: str):
+    if __package__:
+        from .page_snapshots import ensure_snapshots, gaze_for_page
+    else:
+        from page_snapshots import ensure_snapshots, gaze_for_page
+    folder = _session_dir(sid)
+    cal = _parse_calibration(sid) or {}
+    if "ended_at" not in cal:
+        return {"pages": [], "message": "Screenshots are available after recording has finished."}
+    origin = cal.get("video_started_at", cal.get("started_at"))
+    if origin is None:
+        return {"pages": [], "message": "This session has no screen timing information."}
+    try:
+        pages = ensure_snapshots(folder)
+    except RuntimeError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    gaze = _parse_gaze(sid)
+    return {"pages": [{
+        **page,
+        "image_url": f"/data/{sid}/page_snapshots/{page['image']}",
+        "gaze_samples": gaze_for_page(gaze, page['intervals'], origin),
+        "viewed_seconds": sum(w['end'] - w['start'] for w in page['intervals']),
+    } for page in pages]}
 
 
 def _build_gaze_heatmap(gaze: list, cal: dict | None) -> list:
@@ -277,9 +321,11 @@ def _run_calibration():
         )
         with _state_lock:
             _state["proc"] = proc
-        proc.wait()
+        out, _ = proc.communicate()
         with _state_lock:
             _state["status"] = "idle"
+            if proc.returncode:
+                _state["error"] = (out or "Calibration failed").strip()[-4000:]
             _state["proc"] = None
     except Exception as exc:
         with _state_lock:
@@ -294,6 +340,8 @@ def start_recording(background_tasks: BackgroundTasks):
         if _state["status"] not in ("idle",):
             raise HTTPException(status_code=409, detail=f"Cannot record while {_state['status']}")
         _state["status"] = "recording"
+        _state["session_id"] = None
+        _state["recording_metrics"] = None
         _state["error"] = None
         _state["recording_started_at"] = time.time()
 
@@ -312,28 +360,43 @@ def _run_recording():
 
     try:
         proc = subprocess.Popen(
-            [str(PYTHON), script],
+            [str(PYTHON), "-u", script],
             cwd=str(ROOT),
             env=env,
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
             text=True,
+            encoding="utf-8", errors="replace",
         )
         with _state_lock:
             _state["proc"] = proc
-        out, _ = proc.communicate()
+        lines = []
+        for line in proc.stdout:
+            lines.append(line)
+            lines = lines[-100:]
+            if line.startswith("Progress:"):
+                try:
+                    metrics = json.loads(line.removeprefix("Progress:"))
+                    with _state_lock:
+                        _state["recording_metrics"] = metrics
+                except ValueError:
+                    pass
+        proc.wait()
+        out = "".join(lines)
         
         # Parse session id from last stdout line if available
         sid = None
         for line in reversed((out or "").splitlines()):
             if "Saved:" in line:
                 try:
-                    sid = line.split("Saved:")[-1].strip().split("|")[0].strip().split(os.sep)[-1]
+                   sid = line.split("Saved:")[-1].strip().rstrip("|").strip().split(os.sep)[-1]
                 except Exception:
                     pass
                 break
         with _state_lock:
             _state["status"] = "idle"
             _state["session_id"] = sid
+            if proc.returncode or sid is None:
+                _state["error"] = (out or "Recording ended without saving a session").strip()[-4000:]
             _state["proc"] = None
     except Exception as exc:
         with _state_lock:

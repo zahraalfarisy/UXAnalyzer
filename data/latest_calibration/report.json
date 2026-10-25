@@ -13,80 +13,80 @@
   "ema_alpha": 0.25,
   "measurement_noise_cov": [
     [
-      853.1129150390625,
+      910.551025390625,
       0.0
     ],
     [
       0.0,
-      163.19029235839844
+      756.8703002929688
     ]
   ],
   "validation": {
-    "samples": 227,
-    "mean_error_px": 96.92608491764335,
-    "median_error_px": 103.83338350187218,
-    "p90_error_px": 152.06131748897386,
-    "mean_error_screen_diagonal_pct": 4.399916902264306,
+    "samples": 125,
+    "mean_error_px": 116.82817897558846,
+    "median_error_px": 104.4205823049066,
+    "p90_error_px": 208.42859832426944,
+    "mean_error_screen_diagonal_pct": 5.303363689683931,
     "per_target": [
       {
         "target": [
           422.0,
           259.0
         ],
-        "samples": 46,
+        "samples": 25,
         "median_prediction": [
-          334.56681747390087,
-          211.8650672077166
+          335.21616900213917,
+          437.3529412293516
         ],
-        "median_position_error_px": 99.32906571580767
+        "median_position_error_px": 198.34617457320877
       },
       {
         "target": [
           422.0,
           842.0
         ],
-        "samples": 46,
+        "samples": 25,
         "median_prediction": [
-          383.88844296646846,
-          825.6914849834207
+          442.7985434835616,
+          859.2237771232465
         ],
-        "median_position_error_px": 41.454293403290826
+        "median_position_error_px": 27.004405370769998
       },
       {
         "target": [
           979.0,
           561.0
         ],
-        "samples": 45,
+        "samples": 25,
         "median_prediction": [
-          836.7647190771011,
-          579.0516925827236
+          885.6576683036127,
+          602.9160516528517
         ],
-        "median_position_error_px": 143.37621401165933
+        "median_position_error_px": 102.3217780957843
       },
       {
         "target": [
           1497.0,
           259.0
         ],
-        "samples": 45,
+        "samples": 25,
         "median_prediction": [
-          1379.7297951250437,
-          259.0080338582098
+          1428.267371521018,
+          380.6114022937997
         ],
-        "median_position_error_px": 117.27020515014506
+        "median_position_error_px": 139.6907562635916
       },
       {
         "target": [
           1497.0,
           842.0
         ],
-        "samples": 45,
+        "samples": 25,
         "median_prediction": [
-          1448.4130206480477,
-          831.3800705760998
+          1554.5560551185883,
+          884.9028755466891
         ],
-        "median_position_error_px": 49.73406743385928
+        "median_position_error_px": 71.78688049350433
       }
     ]
   },

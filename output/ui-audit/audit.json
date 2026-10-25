@@ -1,0 +1,58 @@
+{
+  "screen_type": "Responsive research dashboard - code audit before improvements",
+  "audited": "UX Analyzer: application shell, Overview, Sessions, calibration/recording flow, session details. Source-code review supported by the earlier screenshots in chat; no new rendered desktop/phone captures were available.",
+  "date": "25 Oct 2026",
+  "overall_score": 62,
+  "summary": "The original interface already has recognizable routes and useful session metrics. Small controls, weak status colours and a crowded phone header reduce usability. This score describes the original code, not a visual certification of the updated app. The fixes listed below have now been implemented; browser-based layout and assistive-technology verification remain outstanding.",
+  "categories": [
+    {"id": "contrast", "score": 55, "note": "Original white-on-blue button text measured 4.02:1; updated teal measures 5.47:1."},
+    {"id": "hierarchy", "score": 68, "note": "Original bright hero and multiple coloured tiles compete; updated page has one primary action and neutral metric cards."},
+    {"id": "spacing", "score": 74, "note": "Content edges are consistent, but the original header has no phone reflow."},
+    {"id": "typography", "score": 64, "note": "Original body/helper copy is often 12-14px, including at phone widths."},
+    {"id": "touch_targets", "score": 46, "note": "Original small buttons and icon-only tabs fall short of comfortable phone targets."},
+    {"id": "consistency", "score": 65, "note": "Shared components help, but logo navigation, keyboard focus and completion states need work."}
+  ],
+  "issues": [
+    {"title": "Small button text and status colours need stronger contrast", "severity": "high", "category": "contrast", "element": "index.css primary colour; ui.jsx Button, Badge and StatTile", "problem": "White on the original #007AFF is 4.02:1, below the 4.5:1 target for ordinary button text. Bright green/orange status colours are also used for small labels and large values on pale surfaces.", "why": "C1-C3 require readable text and meaningful graphics. Exact primary-button contrast was measured with the bundled Stroom script.", "fix": "Implemented #0F766E primary (5.47:1 on white), #596579 helper text (5.90:1), dark status badge text and neutral metric values. The remaining chart/recording overlay colours still need a dedicated visual contrast review.", "screen": 0, "box": null},
+    {"title": "The dashboard has too many competing accents", "severity": "medium", "category": "hierarchy", "element": "DashboardPage.jsx hero, metrics and quick-action cards", "problem": "A saturated blue banner, coloured metrics, badges and coloured workflow cards all seek attention.", "why": "H2 and H4 ask for importance to drive emphasis, with a small number of competing levels.", "fix": "Implemented a quiet introductory hero, one primary Start a session action, secondary Explore sessions, neutral statistic cards and numbered workflow cards.", "screen": 0, "box": null},
+    {"title": "The header does not adapt to narrow phones", "severity": "high", "category": "spacing", "element": "App.jsx original single-row header", "problem": "The wordmark, four full navigation labels and live status share a row without wrapping or a mobile alternative.", "why": "S4 requires usable margins without crowding. P4 asks for actions that remain easy to reach on phones.", "fix": "Implemented desktop sidebar, compact top bar, phone bottom navigation and consistent 16px phone content margins. The logo is now a home link, addressing K3 too. Rendered phone-width verification is still needed.", "screen": 0, "box": null},
+    {"title": "Important reading text is too small or too wide", "severity": "medium", "category": "typography", "element": "ui.jsx Alert and helper copy throughout the pages", "problem": "Body paragraphs often use text-sm (14px), with text-xs instructions at phone widths. Original alerts do not limit paragraph width.", "why": "T1 recommends about 16px web body copy. T3 recommends a comfortable paragraph measure.", "fix": "Implemented 16px body copy, at least 12px helper copy (13px on phones), clear page titles and a max-prose width for alerts.", "screen": 0, "box": null},
+    {"title": "Touch targets and mobile tabs are cramped", "severity": "high", "category": "touch_targets", "element": "ui.jsx small buttons; SessionDetailPage.jsx tabs and back button; checkbox labels", "problem": "Original small controls can be around 28px tall, the back control is 32px wide, and phone tab labels disappear. Native checkbox hit areas are small without a padded label.", "why": "P1-P3 call for comfortable targets, a 24px floor and separation between adjacent controls.", "fix": "Implemented minimum 44px buttons, 48px standard actions, labelled scrollable tabs with 8px gaps and 44px checkbox labels. The back button is widened to 44px. Native media controls remain browser-managed.", "screen": 0, "box": null},
+    {"title": "Keyboard focus is explicitly suppressed", "severity": "high", "category": "consistency", "element": "ui.jsx Button inline outline:none; application navigation", "problem": "Removing the default outline without replacing it leaves keyboard users without a reliable focus marker.", "why": "K4 requires visibly distinct focus states; C3 also applies to the focus indicator.", "fix": "Removed outline suppression, added a 3px teal focus-visible ring with 4px offset, added a skip link and respected reduced-motion preferences.", "screen": 0, "box": null},
+    {"title": "Session identifiers obscure the useful information", "severity": "medium", "category": "hierarchy", "element": "DashboardPage.jsx SessionRow and ResultsPage.jsx session cards", "problem": "Long generated IDs are the main title, while the date is secondary. A session with zero gaze samples can look as complete as a session with valid eye tracking.", "why": "H2 and K4 require important information and missing-data states to be recognizable.", "fix": "Implemented date-first session titles, searchable date/ID, secondary ID metadata and an explicit No gaze data badge. Existing quality warnings and screenshot heatmaps are retained.", "screen": 0, "box": null},
+    {"title": "Calibration and saving need clearer handoffs", "severity": "medium", "category": "consistency", "element": "CalibratePage.jsx and RecordPage.jsx", "problem": "The calibration preview text says Enter begins recording although the calibration route only saves a model. Recording can show success before camera readiness or before saving finishes.", "why": "K4 requires accurate progress and completion feedback next to the action.", "fix": "Implemented save-calibration instructions, explicit success and Continue to recording, camera-readiness copy, pending request indicators and a saving state that prevents repeated Stop requests. These flows still need a real camera/browser acceptance test.", "screen": 0, "box": null}
+  ],
+  "strengths": [
+    {"title": "Recognizable workflow", "detail": "Calibrate, Record and Sessions already express the main research tasks."},
+    {"title": "Reusable UI components", "detail": "Shared buttons, cards, alerts and badges allow improvements to reach every page consistently."},
+    {"title": "Useful evidence alongside analysis", "detail": "Session details retain screen playback, screenshot heatmaps, gaze quality and friction events."}
+  ],
+  "checklist": [
+    {"id":"C1","rule":"Body text contrast >= 4.5:1","result":"fail","note":"Original primary button is 4.02:1; addressed with 5.47:1 teal."},
+    {"id":"C2","rule":"Large text contrast >= 3:1","result":"fail","note":"Bright status colours are used for original large metric values on pale surfaces; updated metrics use dark ink."},
+    {"id":"C3","rule":"UI components and graphics >= 3:1","result":"fail","note":"Some original status/graphic colours are too light. Shared controls improved; chart colours still require visual review."},
+    {"id":"C4","rule":"Colour is not the only signal","result":"pass","note":"Status and friction badges have labels, not colour alone."},
+    {"id":"C5","rule":"Text over images is readable","result":"pass","note":"Operational text is outside screenshot backgrounds."},
+    {"id":"H1","rule":"One clear primary action","result":"pass","note":"The original hero has one high-emphasis white Record button; no invented failure here."},
+    {"id":"H2","rule":"Most important thing stands out most","result":"fail","note":"Original IDs and coloured tiles distract from useful dates and session completeness."},
+    {"id":"H3","rule":"Clear heading structure","result":"pass","note":"Pages already use h1 and section headings."},
+    {"id":"H4","rule":"Emphasis is used sparingly","result":"fail","note":"Original hero, metric colours and action cards compete. Neutral surfaces now reduce this."},
+    {"id":"S1","rule":"Gaps come from one scale","result":"pass","note":"Tailwind spacing tokens give the original layout a repeatable base."},
+    {"id":"S2","rule":"Labels sit closest to their own field","result":"na","note":"The original audited pages contain few editable fields; no rendered field grouping was available."},
+    {"id":"S3","rule":"Elements align to shared edges","result":"pass","note":"Main content uses shared containers and grids."},
+    {"id":"S4","rule":"Consistent outer margins and breathing room","result":"fail","note":"Original header has no narrow-screen reflow; replaced with separate desktop/phone navigation."},
+    {"id":"T1","rule":"Body text is big enough","result":"fail","note":"Original 12-14px copy persists on phones; updated body text is 16px."},
+    {"id":"T2","rule":"Clear type scale with few typefaces","result":"pass","note":"One system-font family and a small set of Tailwind sizes."},
+    {"id":"T3","rule":"Line length about 45-75 characters","result":"fail","note":"Original full-width alerts can run long; updated alerts use max-prose."},
+    {"id":"T4","rule":"Comfortable line height and alignment","result":"pass","note":"Body copy is predominantly left aligned with comfortable leading."},
+    {"id":"P1","rule":"Targets at least 44x44pt or 48x48dp","result":"fail","note":"Original small buttons and back control are undersized; minimums raised."},
+    {"id":"P2","rule":"No target below WCAG 24x24px minimum","result":"fail","note":"Original native checkbox hit areas are small; updated labels have 44px hit height."},
+    {"id":"P3","rule":"Enough space between targets","result":"fail","note":"Original segmented tabs have 4px gaps; updated gaps are 8px."},
+    {"id":"P4","rule":"Key actions are easy to reach","result":"fail","note":"Original navigation is only at the top; phone bottom navigation added."},
+    {"id":"K1","rule":"Components are consistent","result":"pass","note":"Original shared components are a strong base; updated radii and heights are centralized."},
+    {"id":"K2","rule":"Labels say what happens","result":"pass","note":"Start Calibration, Start Recording and Download PNG are task-specific labels."},
+    {"id":"K3","rule":"Familiar conventions","result":"fail","note":"Original wordmark was not a home link; now uses a labelled Link."},
+    {"id":"K4","rule":"States and errors are clear","result":"fail","note":"Original suppressed focus and ambiguous completion states were corrected. Full browser/assistive-tech verification remains outstanding."}
+  ],
+  "screens": []
+}

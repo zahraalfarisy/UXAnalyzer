@@ -21,6 +21,8 @@ export function useSystemStatus(pollMs = 1500) {
           status: data.status,
           sessionId: data.session_id,
           error: data.error,
+          recordingMetrics: data.recording_metrics,
+          recordingStartedAt: data.recording_started_at,
         })
       } catch {
         // backend not running yet

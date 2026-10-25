@@ -1,7 +1,6 @@
 import sys
 import time
 import threading
-import _thread
 import json
 import csv
 from datetime import datetime, timezone
@@ -16,52 +15,68 @@ sys.path.insert(0, str(ROOT / "mouse-tracker"))
 sys.path.insert(0, str(ROOT / "fusion"))
 
 from eyetrax.gaze import GazeEstimator
+from eyetrax.filters import KalmanEMASmoother
 from eyetrax.session import gaze_samples, prepare_session, session_args
-from fusion.live_fusion import detect_rage_click, detect_gaze_mouse_mismatch
+from live_fusion import detect_rage_click, detect_gaze_mouse_mismatch
 
 stop_file = ROOT / "api" / "_scripts" / "stop.flag"
 
-def monitor_stop():
-    while True:
+def monitor_stop(stop_event):
+    while not stop_event.wait(0.2):
         if stop_file.exists():
             stop_file.unlink()
-            _thread.interrupt_main()
+            stop_event.set()
             break
-        time.sleep(0.2)
 
 def record_screen(dest_dir, report, stop_event):
     sw, sh = report["screen_width"], report["screen_height"]
     fourcc = cv2.VideoWriter_fourcc(*'avc1')
     fps = 10.0
     out = cv2.VideoWriter(str(dest_dir / "screen.mp4"), fourcc, fps, (sw, sh))
-    
-    with mss.mss() as sct:
-        monitor = {"top": 0, "left": 0, "width": sw, "height": sh}
-        frame_time = 1.0 / fps
-        while not stop_event.is_set():
-            start_t = time.time()
-            img = sct.grab(monitor)
-            frame = np.array(img)
-            frame = cv2.cvtColor(frame, cv2.COLOR_BGRA2BGR)
-            out.write(frame)
-            
-            elapsed = time.time() - start_t
-            sleep_t = frame_time - elapsed
-            if sleep_t > 0:
-                time.sleep(sleep_t)
-    out.release()
+    report["video_frames"] = 0
+    report["video_fps"] = fps
+    try:
+        if not out.isOpened():
+            raise RuntimeError("H.264 screen recorder could not start. OpenCV needs an H.264 encoder.")
+        with mss.mss() as sct:
+            monitor = {"top": 0, "left": 0, "width": sw, "height": sh}
+            while not stop_event.is_set():
+                frame = cv2.cvtColor(np.array(sct.grab(monitor)), cv2.COLOR_BGRA2BGR)
+                if not report["video_frames"]:
+                    report["video_started_at"] = time.time()
+                    origin = time.monotonic()
+                # Duplicate frames after capture delays to keep video time aligned
+                # with the gaze/mouse wall clock instead of speeding up playback.
+                target = int((time.monotonic() - origin) * fps) + 1
+                while report["video_frames"] < target:
+                    out.write(frame)
+                    report["video_frames"] += 1
+                stop_event.wait(max(0, origin + report["video_frames"] / fps - time.monotonic()))
+    except Exception as exc:
+        report["video_error"] = str(exc)
+    finally:
+        out.release()
 
 def main():
-    threading.Thread(target=monitor_stop, daemon=True).start()
+    stop_event = threading.Event()
+    threading.Thread(target=monitor_stop, args=(stop_event,), daemon=True).start()
     
     args = session_args()
     latest_model = ROOT / "data" / "latest_calibration" / "gaze_model.pkl"
-    if latest_model.exists():
-        args.model_file = latest_model
-        print("Using latest calibration model.")
-        
-    estimator = GazeEstimator(model_name=args.model)
-    prepared = prepare_session(estimator, args)
+    latest_report = latest_model.with_name("report.json")
+    if latest_model.exists() and latest_report.exists():
+        calibration_report = json.loads(latest_report.read_text(encoding="utf-8"))
+        estimator = GazeEstimator(model_name=calibration_report["model"])
+        estimator.load_model(latest_model)
+        args.camera = calibration_report["camera"]
+        smoother = KalmanEMASmoother(ema_alpha=calibration_report["ema_alpha"])
+        smoother.kf.measurementNoiseCov = np.asarray(
+            calibration_report["measurement_noise_cov"], dtype=np.float32)
+        prepared = smoother, calibration_report
+        print("Using latest calibration model and validation report.")
+    else:
+        estimator = GazeEstimator(model_name=args.model)
+        prepared = prepare_session(estimator, args)
     
     if prepared is None:
         print("Session cancelled.")
@@ -89,11 +104,18 @@ def main():
                               on_scroll=lambda x, y, dx, dy: append_mouse(x, y, "scroll", dx=dx, dy=dy))
     listener.start()
     
-    stop_event = threading.Event()
     screen_thread = threading.Thread(target=record_screen, args=(destination, report, stop_event))
     screen_thread.start()
     
-    samples = gaze_samples(estimator, smoother, args.camera, report["screen_width"], report["screen_height"])
+    samples = gaze_samples(estimator, smoother, args.camera, report["screen_width"], report["screen_height"], stop_event)
+    last_progress = 0
+    def progress():
+        print("Progress:" + json.dumps({
+            "frames": report["frames"], "valid_frames": report["valid_frames"],
+            "gaze_reasons": report.get("gaze_reasons", {}),
+            "video_frames": report.get("video_frames", 0),
+            "video_error": report.get("video_error"),
+        }), flush=True)
     
     try:
         with (destination / "gaze_log.csv").open("w", newline="", encoding="utf-8") as gaze_file, \
@@ -105,26 +127,40 @@ def main():
             
             for row in samples:
                 report["frames"] += 1
+                reasons = report.setdefault("gaze_reasons", {})
+                reasons[row["reason"]] = reasons.get(row["reason"], 0) + 1
                 quality_writer.writerow(row)
                 if row["valid"]:
                     report["valid_frames"] += 1
                     gaze_writer.writerow({k: row[k] for k in gaze_writer.fieldnames})
-                if report["frames"] % 30 == 0:
+                if report["frames"] == 1 or time.monotonic() - last_progress >= 1:
                     gaze_file.flush()
                     quality_file.flush()
+                    progress()
+                    last_progress = time.monotonic()
     except KeyboardInterrupt:
         print("\nRecording stopped by user.")
+    except Exception as exc:
+        report["gaze_error"] = str(exc)
     finally:
         listener.stop()
+        listener.join()
         stop_event.set()
         screen_thread.join()
+        samples.close()
+        estimator.close()
         
         report.update(ended_at=time.time(), mouse_events=len(mouse_events))
         (destination / "calibration_report.json").write_text(json.dumps(report, indent=2), encoding="utf-8")
         (destination / "mouse_session.json").write_text(json.dumps({"session_id": sid, "events": mouse_events}, indent=2), encoding="utf-8")
         
-        events = sorted(detect_rage_click(mouse_events) + detect_gaze_mouse_mismatch(
-            list(csv.DictReader((destination / "gaze_log.csv").open())), mouse_events),
+        mouse_data = [{"timestamp": e["ts"], "x": e["x"], "y": e["y"],
+                       "subtype": e["meta"]["subtype"]} for e in mouse_events]
+        with (destination / "gaze_log.csv").open(encoding="utf-8") as gaze_file:
+            gaze_data = [{k: float(v) for k, v in row.items()}
+                         for row in csv.DictReader(gaze_file)]
+        events = sorted(detect_rage_click(mouse_data) + detect_gaze_mouse_mismatch(
+            gaze_data, mouse_data),
             key=lambda e: e["timestamp"])
         (destination / "friction_events.json").write_text(json.dumps(events, indent=2), encoding="utf-8")
         

@@ -64,6 +64,14 @@ Setiap sesi memiliki folder baru di `data/sessions/<session_id>/`:
 
 Data recording tidak mencakup video webcam. Output sesi tidak ditambahkan ke git.
 
+### Playback melalui web app
+
+Record pada web app menyimpan video layar utama sebagai `screen.mp4` (H.264), gaze, dan mouse dalam satu folder sesi. Buka Results → pilih sesi → Playback untuk memutar, pause, seek, dan melihat titik gaze hijau serta cursor/klik oranye sesuai waktu video. Klik penanda friction di bawah video untuk melompat ke kejadian tersebut. Tab Heatmap memakai screenshot statis per tampilan halaman, dengan gaze digabung dari semua kunjungan ke tampilan yang cocok. Smoothing Gaussian tetap (radius 90px), tanpa kontrol kustom. Pilih thumbnail halaman dan unduh screenshot beserta heatmap melalui Download PNG. Screenshot dibuat dari rekaman tersimpan saat tab dibuka, lalu disimpan di `page_snapshots/` agar sesi lama juga didukung. Pengelompokan visual bukan identifikasi URL/DOM; posisi scroll berbeda dapat menjadi screenshot terpisah. Tampilan kurang dari 0,75 detik diabaikan untuk mengurangi screenshot transisi.
+
+Setelah memperbarui aplikasi, restart backend dan frontend agar proxy `/data` aktif. Tunggu indikator frame kamera dan valid gaze muncul sebelum memulai tugas. Jika gaze tetap 0, halaman detail menampilkan penyebab tracking gagal; rekaman lama tanpa sampel gaze tidak bisa dipulihkan menjadi data gaze. Untuk akurasi, gunakan resolusi layar dan posisi kamera yang sama dengan saat kalibrasi. Perekaman web memakai kalibrasi terakhir jika tersedia.
+
+Tes playback tanpa kamera: `python -m unittest discover -s tests -p test_session_playback.py -v` dan `node --test frontend/src/components/playbackTimeline.test.js`.
+
 ## Apa yang diperbaiki
 
 - Persistent calibration dots dengan satu active target; titik yang selesai tetap terlihat.
